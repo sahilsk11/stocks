@@ -17,7 +17,8 @@
   },
   "homepage": "https://github.com/sahilsk11/stocks#readme",
   "dependencies": {
+    "axios": "^0.19.2",
     "dotenv": "^8.2.0",
-    "request": "^2.88.2"
+    "mysql2": "^2.1.0"
   }
 }
