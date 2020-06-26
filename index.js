@@ -58,6 +58,8 @@ const calculatePortfolio = async () => {
     portfolioValue = round(portfolioValue + currentPrice * ownedStock.ownedShares);
     totalInvested = round(totalInvested + ownedStock.avgBuyPrice * ownedStock.ownedShares);
     portfolioGrowth = round((netReturn - totalInvested) / totalInvested);
+
+    //why do i need to do this why can I not just return after
     if (++counter === len) {
       console.log({ ...response, portfolioGrowth, netReturn, portfolioValue, totalInvested })
     }
