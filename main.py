@@ -1,10 +1,28 @@
 import requests
 import passwords
 import mysql.connector
+from mysql.connector import pooling
+
 from pprint import pprint
+import flask
 
 api_key = passwords.api_key()
-
+app = flask.Flask(__name__)
+mydb = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    passwd="root",
+    database="stock"
+)
+connection_pool = mysql.connector.pooling.MySQLConnectionPool(
+    pool_name="pool",
+    pool_size=32,
+    pool_reset_session=True,
+    host='localhost',
+    database='stock',
+    user='root',
+    password='root'
+)
 
 def get_quote(ticker):
     url = f"https://finnhub.io/api/v1/quote?symbol={ticker}&token={api_key}"
@@ -24,18 +42,23 @@ def get_quote(ticker):
 
 
 def get_owned_stocks():
-    mydb = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        passwd="root",
-        database="stock"
-    )
-    query = "SELECT * FROM owned"
+    connection_object = connection_pool.get_connection()
+    query = "SELECT * FROM owned WHERE ticker='AAPL'"
+    cursor = connection_object.cursor(dictionary=True)
+    cursor.execute(query)
+    output = cursor.fetchall()
+    cursor.close()
+    connection_object.close()
+    return output
+
+    """
+    
     cursor = mydb.cursor(dictionary=True)
     cursor.execute(query)
     output = cursor.fetchall()
     cursor.close()
     return output
+    """
 
 
 def calculate_portfolio():
@@ -50,6 +73,8 @@ def calculate_portfolio():
     for stock in owned_stocks:
         ticker = stock["ticker"]
         quote_data = get_quote(ticker)
+        if (quote_data == None):
+            return {}
         current_price = quote_data["current_price"]
         buy_price = stock["avgBuyPrice"]
 
@@ -80,6 +105,10 @@ def calculate_portfolio():
         "portfolio_value": portfolio_value
     }
 
+@app.route("/portfolio")
+def get_portfolio():
+    return flask.jsonify(calculate_portfolio())
 
 if __name__ == "__main__":
-    pprint(calculate_portfolio())
+    app.run()
+    #print(calculate_portfolio())

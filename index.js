@@ -1,6 +1,20 @@
 require('dotenv').config()
 const axios = require('axios');
-const mysql = require('mysql2/promise');
+const mysql = require('mysql2');
+const express = require("express");
+const app = express();
+
+app.listen(8080, () => {
+  console.log("Server running on port 8080");
+});
+
+const pool = mysql.createPool({
+  host: 'localhost',
+  user: 'root',
+  password: 'root',
+  database: 'stock'
+});
+const promisePool = pool.promise();
 
 const apiKey = process.env.apiKey;
 
@@ -14,15 +28,16 @@ const getQuote = async (ticker) => {
 }
 
 const getOwnedStocks = async () => {
-  const connection = await mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: 'root',
-    database: 'stock'
-  });
-  query = `SELECT * FROM owned`
-  const [rows, fields] = await connection.execute(query);
-  connection.end()
+  // const connection = await mysql.createConnection({
+  //   host: 'localhost',
+  //   user: 'root',
+  //   password: 'root',
+  //   database: 'stock'
+  // });
+  query = `SELECT * FROM owned WHERE ticker='AAPL'`
+  //const [rows, fields] = await connection.execute(query);
+  //connection.end()
+  const [rows, fields] = await promisePool.execute(query);
   return rows;
 }
 
@@ -30,7 +45,7 @@ const round = (num) => {
   return Math.round(num * 100) / 100;
 }
 
-const calculatePortfolio = async () => {
+const calculatePortfolio = async (res) => {
   const ownedStocks = await getOwnedStocks();
   let response = { stocks: {} };
 
@@ -61,9 +76,11 @@ const calculatePortfolio = async () => {
 
     //why do i need to do this why can I not just return after
     if (++counter === len) {
-      console.log({ ...response, portfolioGrowth, netReturn, portfolioValue, totalInvested })
+      res.json({ ...response, portfolioGrowth, netReturn, portfolioValue, totalInvested });
     }
   });
 }
 
-calculatePortfolio();
+app.get("/portfolio", (req, res) => {
+  calculatePortfolio(res);
+})
